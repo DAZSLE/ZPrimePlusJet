@@ -28,15 +28,15 @@ Running (expected) limits:
 # AK8
 python runCombine.py -i hist_1DZbb_pt_scalesmear_AK8_interpolations_merge.root  -o cards_AK8_p9_r2p1_interp/ -c p9 --lrho -6.0 --hrho -2.1 --model DMSbb --masses '50,55,60,65,70,75,80,85,90,95,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,475,500' -b AK8 --nr 2 --np 1 
 # CA15
-python runCombine.py -i hist_1DZbb_pt_scalesmear_CA15_interpolations_merge.root  -o cards_CA15_p9_r3p1_interp/ -c p9 --lrho -4.7 --hrho -1.0 --model DMSbb --masses '50,55,60,65,70,75,80,85,90,95,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,475,500' -b CA15 --nr 5 --np 1 
+python runCombine.py -i hist_1DZbb_pt_scalesmear_CA15_interpolations_merge.root  -o cards_CA15_p9_r5p1_interp/ -c p9 --lrho -4.7 --hrho -1.0 --model DMSbb --masses '50,55,60,65,70,75,80,85,90,95,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,475,500' -b CA15 --nr 5 --np 1 
 ```
 
 Plotting (expected) limits:
 ```bash
 # AK8
-python plotLimits.py --gq -c p9 -b CA15 -i cards_AK8_p9_r2p1_interp/ --xsecMin 0 --xsecMax 15 -o cards_AK8_p9_r3p1_interp/ --masses '50,55,60,65,70,75,80,85,90,95,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,475,500'
+python plotLimits.py --gq -c p9 -b AK8 -i cards_AK8_p9_r2p1_interp/ --xsecMin 0 --xsecMax 15 -o cards_AK8_p9_r2p1_interp/ --masses '50,55,60,65,70,75,80,85,90,95,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,475,500'
 # CA15
-python plotLimits.py --gq -c p9 -b CA15 -i cards_CA15_p9_r3p1_interp/ --xsecMin 0 --xsecMax 15 -o cards_CA15_p9_r3p1_interp/ --masses '50,55,60,65,70,75,80,85,90,95,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,475,500'
+python plotLimits.py --gq -c p9 -b CA15 -i cards_CA15_p9_r5p1_interp/ --xsecMin 0 --xsecMax 15 -o cards_CA15_p9_r5p1_interp/ --masses '50,55,60,65,70,75,80,85,90,95,100,125,150,175,200,225,250,275,300,325,350,375,400,425,450,475,500'
 ```
 
 Running F-tests AK8 and CA15 (2, 1) vs (3, 1) polynomial on 10% of data (lower order is model 1):
