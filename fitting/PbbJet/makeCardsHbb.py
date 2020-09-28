@@ -56,6 +56,7 @@ def main(options,args):
     boxes = ['pass', 'fail']
     #Has to follow the ordering in template datacard
     sigs = ['tthqq125','whqq125','hqq125','zhqq125','vbfhqq125']
+    histToCard = {'tthqq125':'ttH_hbb','whqq125':'WH_hbb','hqq125':'ggH_hbb','zhqq125':'ZH_hbb','vbfhqq125':'qqH_hbb','zqq':'zqq','wqq':'wqq','qcd':'qcd','tqq':'tqq'}
     bkgs = ['zqq','wqq','qcd','tqq']
     systs = ['JER','JES','Pu']
 
@@ -121,6 +122,7 @@ def main(options,args):
         vErrs = {}
         mcstatErrs = {}
         scaleErrs = {}
+        smearErrs = {}
         scaleptErrs = {}
         for box in boxes:
             for proc in (sigs+bkgs):
@@ -149,7 +151,7 @@ def main(options,args):
                     jerErrs['%s_%s'%(proc,box)] =  1.0
                     puErrs['%s_%s'%(proc,box)] =  1.0
                     print "to remove: proc, cat, box, rate =", proc, "cat%i"%i, box, rate
-                    procsToRemove.append((proc, "cat%i"%i, box))
+                    procsToRemove.append((proc, "cat%i"%i, box,histToCard[proc]))
                
                 if proc == 'wqq':
                     mass = 80.4
@@ -164,6 +166,11 @@ def main(options,args):
                 #    ==>   scaleErr   = scaleSigma/7GeV
                 scaleSigma                    = mass * SF['shift_SF'] *  SF['shift_SF_ERR']
                 scaleErrs['%s_%s'%(proc,box)] =  scaleSigma/7.0
+
+                if options.year=='2018':
+                    smearErrs['%s_%s'%(proc,box)] =  1.0/20.0    ## 20 sigma for 2018
+                else:
+                    smearErrs['%s_%s'%(proc,box)] =  1.0/4.0     ## 4 sigma for the rest
                 #print proc, mass, scaleSigma, "%.3f"%( scaleSigma/7.0)
 
                 ##### old scheme
@@ -233,22 +240,23 @@ def main(options,args):
                             mcstatErrs['%s_%s'%(proc,box),i,j] = 1.0+(error[0]/rate)
                         else:
                             mcstatErrs['%s_%s'%(proc,box),i,j] = 1.0
-                            if (proc, "cat%i"%i, box) not in procsToRemove:
-                                procsToRemove.append((proc, "cat%i"%i, box))
+                            if (proc, "cat%i"%i, box,histToCard[proc]) not in procsToRemove:
+                                procsToRemove.append((proc, "cat%i"%i, box,histToCard[proc]))
                     else:
                         mcstatErrs['%s_%s'%(proc,box),i,j] = 1.0
                         
 
-        jesString = 'JES%s lnN'%options.suffix
-        jerString = 'JER%s lnN'%options.suffix
-        puString = 'Pu%s lnN'%options.suffix
-        bbString = 'bbeff%s lnN'%options.suffix
-        hqq125ptString = 'hqq125pt lnN'
-        weffString = 'weff%s lnN'%options.suffix
-        vString = 'veff%s lnN'%options.suffix
+        jesString = 'CMS_scale_j%s lnN'%options.suffix
+        jerString = 'CMS_res_j%s lnN'%options.suffix
+        puString = 'CMS_PU%s lnN'%options.suffix
+        bbString = 'CMS_eff_bb%s lnN'%options.suffix
+        hqq125ptString = 'CMS_gghbb_ggHpt lnN'
+        weffString = 'weff%s lnN'%options.suffix            ### this is not used ##
+        vString = 'CMS_gghbb_veff%s lnN'%options.suffix
         ### Normal scale/scale pt
-        scaleptString = 'scalept%s shape'%options.suffix
-        scaleString   = 'scale%s shape'%options.suffix
+        scaleptString = 'CMS_gghbb_scalept%s shape'%options.suffix
+        scaleString   = 'CMS_gghbb_scale%s shape'%options.suffix
+        smearString   = 'CMS_gghbb_smear%s shape'%options.suffix
         ### scale(pt) pass/fail 
         #scalepassptString = 'scalepasspt%s shape'%options.suffix
         #scalefailptString = 'scalefailpt%s shape'%options.suffix
@@ -262,10 +270,14 @@ def main(options,args):
         #else:
         #    scaleString   = 'scale%s shape'%(options.suffix)
         mcStatStrings = {}
-        lumiString = 'lumi%s lnN'%options.suffix
+        if options.year in ['2017','2018']:
+            lumiString = 'lumi_13TeV%s lnN'%options.suffix
+        else:
+            lumiString = 'lumi%s lnN'%options.suffix
         mcStatGroupString = 'mcstat group ='
         mcstatsuffix  = options.suffix.lower().strip("_")
         qcdGroupString = 'qcd group = '
+        qcdeffGroupString = 'qcdeff group = '
         for box in boxes:
             for proc in sigs+bkgs:
                 #for j in range(1,numberOfMassBins+1):
@@ -289,6 +301,7 @@ def main(options,args):
                     lumiString += ' %.3f'%LUMI_ERR
                 if proc in ['qcd','tqq']:
                     scaleString += ' -'
+                    smearString += ' -'
                     #scalepassString += ' -'
                     #scalefailString += ' -'
                     if i > 1:
@@ -297,6 +310,7 @@ def main(options,args):
                         #scalefailptString += ' -'
                 else:
                     scaleString += ' %.3f'%scaleErrs['%s_%s'%(proc,box)]
+                    smearString += ' %.3f'%smearErrs['%s_%s'%(proc,box)]
                     if i > 1:
                         scaleptString += ' %.3f'%scaleptErrs['%s_%s'%(proc,box)]
                     #if box =='pass':
@@ -344,8 +358,13 @@ def main(options,args):
 
         tag = "cat"+str(i)
         dctmp = open(options.odir+"/card_rhalphabet_%s.txt" % tag, 'w')
-        for l in linel:
+        for j,l in enumerate(linel):
+            #if '#' == l[0]:continue
             if 'shapes qcd' in l:
+                if options.addqcdCovMat:
+                    l = l.replace("rhalphabase","qcdfit_decorrelated")
+                    l = l.replace("w_fail_CATX","qcdfit_deco%s"%options.suffix)
+                    l = l.replace("w_pass_CATX","qcdfit_deco%s"%options.suffix)
                 newline = l+options.suffix
                 if options.multi:
                     newline = newline.replace('qcd','qcd_multi')
@@ -356,27 +375,27 @@ def main(options,args):
                     newline = l
             elif 'lumi' in l:
                 newline = lumiString
-            elif 'JES' in l:
+            elif 'CMS_scale_j' in l:
                 newline = jesString
-            elif 'JER' in l:
+            elif 'CMS_res_j' in l:
                 newline = jerString
-            elif 'Pu' in l:
+            elif 'CMS_PU' in l:
                 newline = puString
-            elif 'bbeff' in l:
+            elif 'CMS_eff_bb' in l:
                 newline = bbString
-            elif 'weff' in l:
-                #newline = weffString
-                pass
-            elif 'hqq125pt' in l and not 'hqq125ptShape' in l:
+            #elif 'weff' in l:
+            #    newline = weffString
+            #    pass
+            elif 'ggHpt' in l and not 'ggHptShape' in l:
                 newline = hqq125ptString
-            elif 'hqq125ptShape' in l:
+            elif 'ggHptShape' in l:
                 if options.addHptShape:
                     newline = l
                 else:
-                    newline = l.replace("hqq125ptShape","#hqq125ptShape")
+                    newline = l.replace("ggHptShape","#ggHptShape")
             elif 'veff' in l:
                 newline = vString
-            elif 'scale' in l  and 'pt' in l and i>1:
+            elif 'CMS_gghbb_scale' in l  and 'pt' in l and i>1:
                 #newline = scaleptString.replace("scalept","scalept_cat%i"%i)
                 newline = scaleptString
                 #if 'pass' in l:
@@ -385,8 +404,11 @@ def main(options,args):
                 #    newline = scalefailptString
                 pass
             elif 'smear' in l:
-                newline = l.replace('smear','smear'+options.suffix)
-            elif 'scale' in l and not 'pt' in l:
+                #newline = l.replace('smear','smear'+options.suffix)
+                newline = smearString
+            elif 'trigger' in l:
+                newline = l.replace('trigger','trigger'+options.suffix)
+            elif 'CMS_gghbb_scale' in l and not 'pt' in l:
                 newline = scaleString
                 #if 'pass' in l:
                 #    newline = scalepassString
@@ -399,47 +421,17 @@ def main(options,args):
                 newline = newline.replace('CATXnorm','CATX%snorm'%options.suffix)
                 newline = newline.replace('tqqnormSF','tqqnormSF%s'%options.suffix)
                 newline = newline.replace('tqqeffSF','tqqeffSF%s'%options.suffix)
-            #elif 'wznormEW' in l:
-            #    if i==4:
-            #        newline = l.replace('1.05','1.15')
-            #    elif i==5:
-            #        newline = l.replace('1.05','1.15')
-            #    elif i==6:
-            #        newline = l.replace('1.05','1.15')
-            #    else:
-            #        newline = l
-            #elif 'znormEW' in l:
-            #    if i==3:
-            #        newline = l.replace('1.15','1.25')
-            #    elif i==4:
-            #        newline = l.replace('1.15','1.35')
-            #    elif i==5:
-            #        newline = l.replace('1.15','1.35')
-            #    elif i==6:
-            #        newline = l.replace('1.15','1.35')      
-            #    else:
-            #        newline = l              
-            elif 'wznormEW' in l:
-                if i==4:
-                    newline = l.replace('1.02','1.06')
-                elif i==5:
-                    newline = l.replace('1.02','1.06')
-                elif i==6:
-                    newline = l.replace('1.02','1.06')
-                else:
-                    newline = l
-            elif 'znormEW' in l:
-                if i==3:
-                    newline = l.replace('1.05','1.07')
-                elif i==4:
-                    newline = l.replace('1.05','1.07')
-                elif i==5:
-                    newline = l.replace('1.05','1.07')
-                elif i==6:
-                    newline = l.replace('1.05','1.07')      
-                else:
-                    newline = l              
-
+            elif "wznormEW" in l:
+                if i==4:                    newline = l.replace('1.02','1.06')
+                elif i==5:                    newline = l.replace('1.02','1.06')
+                elif i==6:                    newline = l.replace('1.02','1.06')
+                else:                    newline = l
+            elif "znormEW" in l:
+                if i==3:                    newline = l.replace('1.05','1.07')
+                elif i==4:                    newline = l.replace('1.05','1.07')
+                elif i==5:                    newline = l.replace('1.05','1.07')
+                elif i==6:                    newline = l.replace('1.05','1.07')      
+                else:                    newline = l              
             else:
                 newline = l
             if "CATX" in l:
@@ -448,7 +440,7 @@ def main(options,args):
         for box in boxes:
             for proc in sigs+bkgs:
                 if options.noMcStatShape and proc!='qcd' :
-                    if (proc, 'cat%i'%i, box) not in procsToRemove:
+                    if (proc, 'cat%i'%i, box,histToCard[proc]) not in procsToRemove:
                         print 'include %s%scat%i%smcstat'%(proc,box,i,mcstatsuffix)
                         firstmassbin = masshistbins[0]
                         dctmp.write(mcStatStrings['%s_%s'%(proc,box),i,firstmassbin].replace('mcstat%s'%str(firstmassbin),'mcstat') + "\n")
@@ -487,16 +479,17 @@ def main(options,args):
         for flatPar in flatPars:
             dctmp.write('%s%s flatParam \n'%(flatPar,options.suffix))
         if options.addqcdCovMat:
-            if options.year == '2017':                qcdfit ='ddb_Jun24_v2/ddb_M2_full/TF22_MC_muonCR_SFJul8/'
-            elif options.year =='2016':               qcdfit ='ddb2016_Jun24_v2/ddb_M2_full/TF22_MC_muonCR_SFJul8/'
-            elif options.year =='2018':               qcdfit ='ddb2018_Jun24_v3/ddb_M2_full/TF22_MC_muonCR_SFJul8/'
-            with open('%s/qcdTF_MC_cov_cat%i.txt'%(qcdfit,i)) as qcdtxt:
-                for qcdline in qcdtxt:
-                    dctmp.write(qcdline)
-                
+            qcdfit_deco = r.TFile.Open(options.odir+'qcdfit_decorrelated.root')
+            ws          = qcdfit_deco.Get("qcdfit_deco_%s"%options.year)
+            decoVars    = ws.allVars().selectByName("qcdfit_tf_%s_deco*"%options.year)
+            decoVars.Print()
+            for i in range(0,decoVars.getSize()):
+                qcdeffGroupString += "qcdfit_tf_%s_deco%s "%(options.year,i)
+                dctmp.write("qcdfit_tf_%s_deco%s param 0 1"%(options.year,i)+'\n')
 
-        #dctmp.write(mcStatGroupString + "\n")
-        #dctmp.write(qcdGroupString + "\n")
+        dctmp.write(mcStatGroupString + "\n")
+        dctmp.write(qcdGroupString + "\n")
+        dctmp.write(qcdeffGroupString + "\n")
         dctmp.close()
     def removeProc(proc, tag, box):
         dctmp = open(options.odir+"/card_rhalphabet_%s.txt" % tag, 'r')
@@ -532,8 +525,30 @@ def main(options,args):
         dctmp_w = open(options.odir+"/card_rhalphabet_%s.txt" % tag, 'w')
         for l in linel: dctmp_w.write(' '.join(l)+'\n')
 
-    for proc, tag, box in procsToRemove: 
-        removeProc(proc, tag, box)
+    for proc, tag, box, cardProc in procsToRemove: 
+        removeProc(cardProc, tag, box)
+
+    def Renamebase():
+        fin = r.TFile.Open(options.odir+'base.root')
+        fout = r.TFile(options.odir+'base_new.root','recreate')
+        boxes = ['pass', 'fail']
+        for box in boxes:
+            for i in range(1,numberOfPtBins+1):
+                win = fin.Get("w_%s_cat%s"%(box,i))
+                wout = r.RooWorkspace("w_%s_cat%s"%(box,i),"w_%s_cat%s"%(box,i))
+                for h in win.allData():
+                    h.SetName(h.GetName().replace('tthqq125', 'ttH_hbb'))
+                    h.SetName(h.GetName().replace('whqq125', 'WH_hbb'))
+                    h.SetName(h.GetName().replace('zhqq125', 'ZH_hbb'))
+                    h.SetName(h.GetName().replace('vbfhqq125', 'qqH_hbb'))
+                    h.SetName(h.GetName().replace('hqq125', 'ggH_hbb'))
+                    getattr(wout, 'import')(h)
+                fout.cd()
+                wout.Write()
+        os.system('mv %sbase.root %sbase_old.root'%(options.odir,options.odir))
+        os.system('mv %sbase_new.root %sbase.root'%(options.odir,options.odir))
+    Renamebase()
+        
 ###############################################################
 
 
@@ -552,6 +567,7 @@ if __name__ == '__main__':
     parser.add_option('--remove-unmatched', action='store_true', dest='removeUnmatched', default =False,help='remove unmatched', metavar='removeUnmatched')
     parser.add_option('--addHptShape', action='store_true', dest='addHptShape', default =False,help='add higgspt shape', metavar='addHptShape')
     parser.add_option('--addqcdCovMat', action='store_true', dest='addqcdCovMat', default =False,help='add qcdCovMat', metavar='addqcdCovMat')
+    parser.add_option('--qcdfitdir',  dest='qcdfitdir', default ='',help='add qcdfit dir', metavar='qcdfitdir')
     parser.add_option('--no-mcstat-shape', action='store_true', dest='noMcStatShape', default =False,help='change mcstat uncertainties to lnN', metavar='noMcStatShape')
     parser.add_option('--suffix', dest='suffix', default='', help='suffix for conflict variables',metavar='suffix')
     parser.add_option('--multi', action='store_true', dest='multi', default=False, help='define RooMultiPdf',

@@ -13,7 +13,7 @@ import array
 r.gSystem.Load(os.getenv('CMSSW_BASE') + '/lib/' + os.getenv('SCRAM_ARCH') + '/libHiggsAnalysisCombinedLimit.so')
 
 # including other directories
-# sys.path.insert(0, '../.')
+sys.path.insert(0, '../.')
 from tools import *
 from hist import *
 
@@ -40,14 +40,14 @@ SF2018={
 }
 SF2017={
             #cristina July8
-            #'shift_SF'  : 0.978,           'shift_SF_ERR' : 0.012,
-            #'smear_SF'  : 0.9045,          'smear_SF_ERR' : 0.048,
-            #'V_SF'      : 0.924,           'V_SF_ERR'  : 0.018,  
+            'shift_SF'  : 0.978,           'shift_SF_ERR' : 0.012,
+            'smear_SF'  : 0.9045,          'smear_SF_ERR' : 0.048,
+            'V_SF'      : 0.924,           'V_SF_ERR'  : 0.018,  
             #cristina Jun25
-            'shift_SF'  : 0.979,           'shift_SF_ERR' : 0.012,
+            #'shift_SF'  : 0.979,           'shift_SF_ERR' : 0.012,
             #'smear_SF'  : 0.911,           'smear_SF_ERR' : 0.0476,
-            'smear_SF'  : 1.037,            'smear_SF_ERR' : 0.049   , # prelim SF @26% N2ddt 
-            'V_SF'      : 0.92,            'V_SF_ERR'     : 0.018,  
+            #'V_SF'      : 0.92,            'V_SF_ERR'     : 0.018,  
+            #'smear_SF'  : 1.037,            'smear_SF_ERR' : 0.049   , # prelim SF @26% N2ddt 
 
             #'shift_SF'  : 1.001,            'shift_SF_ERR' : 0.0044   , # 2016 shift SF 
             #'smear_SF'  : 1.084,            'smear_SF_ERR' : 0.0905  , #  2016 smear SF 
@@ -66,7 +66,7 @@ SF2016={
             #'s_mc'      : 8.027,            's_mc_err'  : 0.607,
             #'BB_SF'     : 0.68,             'BB_SF_ERR' : 0.15,     ## T2 SF
             #'BB_SF'     : 0.77,             'BB_SF_ERR' : 0.07,     ## M2 SF
-            'BB_SF'     : 1.0,             'BB_SF_ERR' : 0.3,     ## M2 SF
+            'BB_SF'     : 1.0,             'BB_SF_ERR' : 0.23,     ## M2 SF
             'V_SF'      : 0.993,            'V_SF_ERR'  : 0.043,
             'shift_SF'  : 1.001,            'shift_SF_ERR' : 0.012   , # m_data/m_mc, sqrt((m_data_err/m_data)**2+(m_mc_err/m_mc)**2)
             #'shift_SF'  : 1.001,            'shift_SF_ERR' : 0.044   , # m_data/m_mc, sqrt((m_data_err/m_data)**2+(m_mc_err/m_mc)**2)
@@ -81,57 +81,95 @@ SF2016={
 #p1r1 =  1.7097   +/- 0.1284 
 #p1r2 =  -0.8651  +/- 0.0997 
 
-#==================== ddb_Jun24_v2/ddb_M2_full/TF22_MC_muonCR_SFJul8/card_rhalphabet_all_2017_floatZ.root ====================
-#qcdeff_2017 =  0.0151  +/- 0.0000              (post-fit)
-#p0r0_2017   =  -1.0404 +/- 0.0667              p0r0_2017   -9.2544e-01 +/-  1.17e-01
-#p0r1_2017   =  2.3977  +/- 0.0406              p0r1_2017    2.3221e+00 +/-  7.27e-02
-#p0r2_2017   =  0.7081  +/- 0.0174              p0r2_2017    7.2724e-01 +/-  2.34e-02
-#p1r0_2017   =  1.1165  +/- 0.1255              p1r0_2017    1.0017e+00 +/-  2.90e-01
-#p1r1_2017   =  1.6787  +/- 0.1259              p1r1_2017    1.7054e+00 +/-  2.45e-01
-#p1r2_2017   =  -0.1655 +/- 0.0798              p1r2_2017   -1.7416e-01 +/-  1.30e-01
-#p2r0_2017   =  0.1460  +/- 0.1745              p2r0_2017    2.8648e-01 +/-  3.77e-01
-#p2r1_2017   =  1.5137  +/- 0.2721              p2r1_2017    1.3657e+00 +/-  5.22e-01
-#p2r2_2017   =  -0.0976 +/- 0.3093              p2r2_2017    8.9347e-02 +/-  5.33e-01
+#==================== ddb_Jun24_v2/ddb_M2_full/TF22_MC_w2Fit/card_rhalphabet_all_2017_floatZ.root ====================
+#qcdeff_2017 =  0.0151  +/- 0.0000 
+#p0r0_2017   =  -1.0359 +/- 0.1669 
+#p0r1_2017   =  2.3953  +/- 0.1000 
+#p0r2_2017   =  0.7093  +/- 0.0362 
+#p1r0_2017   =  1.0947  +/- 0.3854 
+#p1r1_2017   =  1.6930  +/- 0.3269 
+#p1r2_2017   =  -0.1745 +/- 0.1725 
+#p2r0_2017   =  0.1980  +/- 0.4379 
+#p2r1_2017   =  1.4567  +/- 0.5200 
+#p2r2_2017   =  -0.0427 +/- 0.4857 
 
-#==================== ddb2016_Jun24_v2/ddb_M2_full/TF22_MC_muonCR_SFJul8/card_rhalphabet_all_2016_floatZ.root ====================
+#==================== ddb2016_Jun24_v2/ddb_M2_full/TF22_MC_w2Fit/card_rhalphabet_all_2016_floatZ.root ====================
 #qcdeff_2016 =  0.0145 +/- 0.0000 
-#p0r0_2016 =  -1.0210 +/- 0.0610 
-#p0r1_2016 =  2.3459  +/- 0.0361 
-#p0r2_2016 =  0.6978  +/- 0.0147 
-#p1r0_2016 =  0.9232  +/- 0.1238 
-#p1r1_2016 =  2.3925  +/- 0.1187 
-#p1r2_2016 =  -0.7023  +/- 0.0676 
-#p2r0_2016 =  0.5732  +/- 0.1745 
-#p2r1_2016 =  1.2283  +/- 0.2591 
-#p2r2_2016 =  0.1019  +/- 0.2752 
-
-#==================== ddb2018_Jun24_v3/ddb_M2_full/TF22_MC_muonCR_SFJul8/card_rhalphabet_all_2018_floatZ.root ====================
+#p0r0_2016   =  -1.0136 +/- 0.3498 
+#p0r1_2016   =  2.3427 +/- 0.2129 
+#p0r2_2016   =  0.6987 +/- 0.0783 
+#p1r0_2016   =  0.8998 +/- 0.7414 
+#p1r1_2016   =  2.4030 +/- 0.6171 
+#p1r2_2016   =  -0.7088 +/- 0.3288 
+#p2r0_2016   =  0.6278 +/- 0.8229 
+#p2r1_2016   =  1.1812 +/- 0.9868 
+#p2r2_2016   =  0.1521 +/- 0.9433 
+#==================== ddb2016_Jun24_v3/ddb_M2_full/TF22_MC_w2Fit/card_rhalphabet_all_2016_floatZ.root ====================
+#qcdeff_2016 =  0.0145 +/- 0.0000 
+#p0r0_2016 =  -1.1068 +/- 0.1544 
+#p0r1_2016 =  2.4223 +/- 0.0937 
+#p0r2_2016 =  0.6320 +/- 0.0323 
+#p1r0_2016 =  1.3960 +/- 0.3358 
+#p1r1_2016 =  2.1129 +/- 0.2936 
+#p1r2_2016 =  -0.3538 +/- 0.1520 
+#p2r0_2016 =  0.0473 +/- 0.3804 
+#p2r1_2016 =  1.3758 +/- 0.4746 
+#p2r2_2016 =  -0.1053 +/- 0.4365 
+#==================== ddb2018_Jun24_v3/ddb_M2_full/TF22_MC_w2Fit/card_rhalphabet_all_2018_floatZ.root ====================
 #qcdeff_2018 =  0.0139 +/- 0.0000 
-#p0r0_2018 =   -0.9751 +/- 0.0547 
-#p0r1_2018 =   2.3730 +/- 0.0331 
-#p0r2_2018 =   0.6757 +/- 0.0142 
-#p1r0_2018 =   1.0980 +/- 0.1051 
-#p1r1_2018 =   1.4290 +/- 0.1057 
-#p1r2_2018 =   0.1947 +/- 0.0669 
-#p2r0_2018 =   0.1500 +/- 0.1493 
-#p2r1_2018 =   1.9308 +/- 0.2261 
-#p2r2_2018 =   -0.9522 +/- 0.2458 
+#p0r0_2018 =  -0.9680 +/- 0.1666 
+#p0r1_2018 =  2.3695 +/- 0.1017 
+#p0r2_2018 =  0.6775 +/- 0.0382 
+#p1r0_2018 =  1.0759 +/- 0.3846 
+#p1r1_2018 =  1.4427 +/- 0.3313 
+#p1r2_2018 =  0.1826 +/- 0.1843 
+#p2r0_2018 =  0.2077 +/- 0.4334 
+#p2r1_2018 =  1.8612 +/- 0.5152 
+#p2r2_2018 =  -0.8737 +/- 0.4928 
 
-#qcdTFpars={
-#            #'n_rho':2, 'n_pT':1,
-#            #'pars':[  0.0153,-0.7085 ,2.2649  ,0.7067  ,1.1266  ,1.7097  ,-0.8651     ]
-#            'n_rho':2, 'n_pT':2,
-#            'pars':[  0.0151 ,-1.0404,2.3977 ,0.7081 ,1.1165 ,1.6787 ,-0.1655,0.1460 ,1.5137 ,-0.0976]
-#            #'n_rho':2, 'n_pT':2,
-#            #'pars':[  0.0145 ,-1.0210,2.3459 ,0.6978 ,0.9232 ,2.3925 ,-0.7023,0.5732 ,1.2283 ,0.1019 ]
-#        }
+
+############## TF21s#######################
+#==================== ddb2016_Jun24_v3/ddb_M2_full/TF21_MC_w2Fit/card_rhalphabet_all_2016_floatZ.root ====================
+#qcdeff_2016 = 0.0144 +/- 0.0000 
+#p0r0_2016 =  -0.7777 +/- 0.1012 
+#p0r1_2016 =  2.3120  +/- 0.0676 
+#p0r2_2016 =  0.6491  +/- 0.0265 
+#p1r0_2016 =  1.3179  +/- 0.1327 
+#p1r1_2016 =  2.1454  +/- 0.1989 
+#p1r2_2016 =  -1.2233 +/- 0.1560 
+#==================== ddb_Jun24_v2/ddb_M2_full/TF21_MC_w2Fit/card_rhalphabet_all_2017_floatZ.root ====================
+#qcdeff_2017 =  0.0151 +/- 0.0000 
+#p0r0_2017 =  -0.7472 +/- 0.1019 
+#p0r1_2017 =  2.2678 +/- 0.0672 
+#p0r2_2017 =  0.7198 +/- 0.0283 
+#p1r0_2017 =  1.1505 +/- 0.1126 
+#p1r1_2017 =  1.7452 +/- 0.1785 
+#p1r2_2017 =  -0.9013 +/- 0.1570 
+#==================== ddb2018_Jun24_v3/ddb_M2_full/TF21_MC_w2Fit/card_rhalphabet_all_2018_floatZ.root ====================
+#qcdeff_2018 =  0.0139 +/- 0.0000 
+#p0r0_2018 =  -0.7232 +/- 0.1037 
+#p0r1_2018 =  2.2527 +/- 0.0704 
+#p0r2_2018 =  0.7066 +/- 0.0306 
+#p1r0_2018 =  1.2450 +/- 0.1200 
+#p1r1_2018 =  1.4251 +/- 0.1879 
+#p1r2_2018 =  -0.6247 +/- 0.1706 
+
 qcdTFpars_2017={'n_rho':2, 'n_pT':2,
-            'pars':[  0.0151 ,-1.0404,2.3977 ,0.7081 ,1.1165 ,1.6787 ,-0.1655,0.1460 ,1.5137 ,-0.0976]}
+            'pars':[ 0.0151 , -1.0359, 2.3953 , 0.7093 , 1.0947 , 1.6930 , -0.1745, 0.1980 , 1.4567 , -0.0427],
+            'fitpath':'ddb_Jun24_v2/ddb_M2_full/TF22_MC_w2Fit/rhalphabase.root'}
 qcdTFpars_2016={'n_rho':2, 'n_pT':2,
-            'pars':[  0.0145 ,-1.0210,2.3459 ,0.6978 ,0.9232 ,2.3925 ,-0.7023,0.5732 ,1.2283 ,0.1019 ]}
+            'pars':[ 0.0144,-1.0856,2.4440 ,0.6407 ,1.3394 ,1.8660 ,-0.4000,0.1670 ,1.7287 ,-0.1297], ## v2
+            'fitpath':'ddb2016_Jun24_v3/ddb_M2_full/TF22_MC_w2Fitv2/rhalphabase.root'}
 qcdTFpars_2018={'n_rho':2, 'n_pT':2,
-            'pars':[ 0.0139 ,-0.9751 ,2.3730 ,0.6757 ,1.0980 ,1.4290 ,0.1947 ,0.1500 ,1.9308 ,-0.9522]}
+            'pars':[0.0139,-0.9680,2.3695 ,0.6775 ,1.0759 ,1.4427 ,0.1826 ,0.2077 ,1.8612 ,-0.8737],
+            'fitpath':'ddb2018_Jun24_v3/ddb_M2_full/TF22_MC_w2Fit/rhalphabase.root'}
 
+#qcdTFpars_2016={'n_rho':2, 'n_pT':1,
+#            'pars':[ 0.0144, -0.7777, 2.3120 , 0.6491 , 1.3179 , 2.1454 , -1.2233]}
+#qcdTFpars_2017={'n_rho':2, 'n_pT':1,
+#            'pars':[ 0.0151 ,-0.7472,2.2678 ,0.7198 ,1.1505 ,1.7452 ,-0.9013 ]}
+#qcdTFpars_2018={'n_rho':2, 'n_pT':1,
+#            'pars':[0.0139,-0.7232,2.2527 ,0.7066 ,1.2450 ,1.4251 ,-0.6247]}
 
 #2016  T2pt350to2000, WPcut=0.92, SF= 0.68  +0.20/-0.10
 #2016  M2pt350to2000, WPcut=0.89, SF= 0.77  +0.11/-0.04
@@ -149,17 +187,19 @@ def main(options, args):
     # 	- for each MC sample and the data
     f = r.TFile.Open(ifile)    
     fLoose = None
+    qcdTFpars = {}
     if options.ifile_loose is not None:
         fLoose = r.TFile.Open(options.ifile_loose)
     if   options.year =='2018':
           sf=SF2018
-          qcdTFpars = qcdTFpars_2018 
+          if not options.pseudo:    qcdTFpars = qcdTFpars_2018 
     elif options.year =='2017':
           sf=SF2017
-          qcdTFpars = qcdTFpars_2017
+          if not options.pseudo:    qcdTFpars = qcdTFpars_2017
     elif options.year =='2016':
           sf=SF2016
-          qcdTFpars = qcdTFpars_2016
+          if not options.pseudo:    qcdTFpars = qcdTFpars_2016
+
     #(hpass, hfail) = loadHistograms(f, options.pseudo, options.blind, options.useQCD, options.scale, options.r)
     (pass_hists,fail_hists) = LoadHistograms(f, options.pseudo, options.blind, options.useQCD, scale=options.scale, r_signal=options.r, mass_range=[MASS_HIST_LO, MASS_HIST_HI], blind_range=[BLIND_LO, BLIND_HI], rho_range=[RHO_LO,RHO_HI], fLoose=fLoose,sf_dict=sf,createPassFromFail=options.createPassFromFail,skipQCD=options.skipQCD)
     #f.Close()
@@ -167,7 +207,7 @@ def main(options, args):
     # Build the workspacees
     #dazsleRhalphabetBuilder(hpass, hfail, f, odir, options.NR, options.NP)
 
-    rhalphabuilder = RhalphabetBuilder(pass_hists, fail_hists, f, options.odir, nr=options.NR, np=options.NP, mass_nbins=MASS_BINS, mass_lo=MASS_LO, mass_hi=MASS_HI, blind_lo=BLIND_LO, blind_hi=BLIND_HI, rho_lo=RHO_LO, rho_hi=RHO_HI, blind=options.blind, mass_fit=options.massfit, freeze_poly=options.freeze, remove_unmatched=options.removeUnmatched, input_file_loose=fLoose,suffix=options.suffix,sf_dict=sf,mass_hist_lo=MASS_HIST_LO,mass_hist_hi=MASS_HIST_HI,qcdTFpars=qcdTFpars,exp=options.exp,multi=options.multi)
+    rhalphabuilder = RhalphabetBuilder(pass_hists, fail_hists, f, options.odir, nr=options.NR, np=options.NP, mass_nbins=MASS_BINS, mass_lo=MASS_LO, mass_hi=MASS_HI, blind_lo=BLIND_LO, blind_hi=BLIND_HI, rho_lo=RHO_LO, rho_hi=RHO_HI, blind=options.blind, mass_fit=options.massfit, freeze_poly=options.freeze, remove_unmatched=options.removeUnmatched, input_file_loose=fLoose,suffix=options.suffix,sf_dict=sf,mass_hist_lo=MASS_HIST_LO,mass_hist_hi=MASS_HIST_HI,qcdTFpars=qcdTFpars,exp=options.exp,multi=options.multi,pseudo=options.pseudo)
     rhalphabuilder.run()
     if options.addHptShape:
         rhalphabuilder.addHptShape()	
@@ -175,6 +215,8 @@ def main(options, args):
         rhalphabuilder.prefit()
     elif options.loadfit is not None:
         rhalphabuilder.loadfit(options.loadfit)
+    if not options.pseudo:
+        rhalphabuilder.createdeco()
         
 
 ##-------------------------------------------------------------------------------------

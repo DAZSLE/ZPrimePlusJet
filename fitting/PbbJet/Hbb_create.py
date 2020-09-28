@@ -288,6 +288,7 @@ def get2016legacyfiles():
     idir_1503skim = 'root://cmseos.fnal.gov//eos/uscms/store/user/lpcbacon/dazsle/zprimebits-v15.03/skim/'
     idir_1603     = 'root://cmseos.fnal.gov//eos/uscms/store/user/lpcbacon/dazsle/zprimebits-v16.03/'
     idir_1603skim = 'root://cmseos.fnal.gov//eos/uscms/store/user/lpcbacon/dazsle/zprimebits-v16.03/skim/'
+    idir_16031skim = 'root://cmseos.fnal.gov//eos/uscms/store/user/lpcbacon/dazsle/zprimebits-v16.031/skim/'
     tfiles = {
 	          'hqq125'     :          { 'GluGluHToBB_M125_13TeV_powheg_pythia8':                      [idir_1603skim+'/GluGluHToBB_M125_13TeV_powheg_pythia8_*.root']},
 	          'vbfhqq125'    :          { 'VBFHToBB_M_125_13TeV_powheg_pythia8_weightfix':            [idir_1603skim+'/VBFHToBB_M_125_13TeV_powheg_pythia8_weightfix_*.root']},
@@ -342,11 +343,11 @@ def get2016legacyfiles():
                             },
               'qcd':        {
                              #'QCD_HT300to500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8'  :[idir_1503skim+'/QCD_HT300to500_*.root'  ],
-                             'QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8'  :[idir_1603skim+'/QCD_HT500to700_*.root'  ],
-                             'QCD_HT700to1000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8' :[idir_1603skim+'/QCD_HT700to1000_*.root' ],
-                             'QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8':[idir_1603skim+'/QCD_HT1000to1500_*.root'],
-                             'QCD_HT1500to2000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8':[idir_1603skim+'/QCD_HT1500to2000_*.root'],
-                             'QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8' :[idir_1603skim+'/QCD_HT2000toInf_*.root' ]
+                             'QCD_HT500to700_TuneCUETP8M1_13TeV-madgraphMLM-pythia8'  :[idir_16031skim+'/QCD_HT500to700_*.root'  ],
+                             'QCD_HT700to1000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8' :[idir_16031skim+'/QCD_HT700to1000_*.root' ],
+                             'QCD_HT1000to1500_TuneCUETP8M1_13TeV-madgraphMLM-pythia8':[idir_16031skim+'/QCD_HT1000to1500_*.root'],
+                             'QCD_HT1500to2000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8':[idir_16031skim+'/QCD_HT1500to2000_*.root'],
+                             'QCD_HT2000toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8' :[idir_16031skim+'/QCD_HT2000toInf_*.root' ]
                             },
               'data_obs_jet': [
                             #idir_1503skim + 'JetHTRun2016B_07Aug17_v*_ddb8X*.root',
@@ -629,12 +630,14 @@ def main(options, args):
         #### reduced set of 2016 bkg samples
         bkgSamples['wqq']  = normSampleContainer('wqq',tfiles['wqq']  ,  1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
         bkgSamples['zqq']  = normSampleContainer('zqq',tfiles['zqq']  ,  1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
-        #bkgSamples['vvqq'] = normSampleContainer('vvqq', tfiles['vvqq'], 1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
+        bkgSamples['vvqq'] = normSampleContainer('vvqq', tfiles['vvqq'], 1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
         bkgSamples['tqq']  = normSampleContainer('tqq', tfiles['tqq'] ,  1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
+        if muonCR:
+            bkgSamples['wlnu'] = normSampleContainer('wlnu',tfiles['wlnu'],  1, dbtagmin,lumi,False,False,'1',True, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
         if not options.skipQCD:
             bkgSamples['qcd'] = normSampleContainer('qcd', tfiles['qcd'], 1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
-        #bkgSamples['stqq'] = normSampleContainer('stqq', tfiles['stqq'], 1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
-        #bkgSamples['zll']  = normSampleContainer('zll', tfiles['zll']  , 1, dbtagmin,lumi,False,False,'1',False ,iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
+        bkgSamples['stqq'] = normSampleContainer('stqq', tfiles['stqq'], 1, dbtagmin,lumi,False,False,'1',False, iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
+        bkgSamples['zll']  = normSampleContainer('zll', tfiles['zll']  , 1, dbtagmin,lumi,False,False,'1',False ,iSplit = i_split, maxSplit = max_split, doublebCut=dbtagcut,puOpt=pu_Opt,doublebName=doublebName).addPlots(plots)
 
 
     print "Data..."

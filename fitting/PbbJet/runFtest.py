@@ -1,5 +1,6 @@
 import ROOT as r,sys,math,os
 from ROOT import TFile, TTree, TChain, gPad, gDirectory
+from buildRhalphabetHbb import SF2018,SF2017,SF2016
 from multiprocessing import Process
 from optparse import OptionParser
 from operator import add
@@ -18,7 +19,7 @@ def exec_me(command, outf, dryRun=False):
 def buildcats(ifile,odir,muonCR,suffix):
     #get N ptbins
     tf = r.TFile(ifile)
-    ncats=tf.Get("qcd_pass").GetYaxis().GetNbins()
+    ncats=tf.Get("data_obs_pass").GetYaxis().GetNbins()
     cats=[]
     for icat in range(1,ncats+1):
         cats.append( {"name":"cat%s"%icat,"card":odir+"card_rhalphabet_cat%s.txt"%icat})
@@ -32,35 +33,58 @@ def buildcats(ifile,odir,muonCR,suffix):
 
 def buildcards(odir,nr,np, options):
     ifile = options.ifile
-    suffix= options.suffix
-    pseudo= options.pseudo
-    blind = options.blind
-    iloose= options.ifile_loose
-    muonCR= options.ifile_muon
-    #is2017= options.is2017
-    year   = options.year
     dryRun= options.dryRun
-    exp    = options.exp
+    if hasattr(options,'suffix'): suffix= options.suffix
+    else:                         suffix=''
+    if hasattr(options,'pseudo'): pseudo= options.pseudo
+    else:                         pseudo=''
+    if hasattr(options,'blind'): blind = options.blind
+    else:                         blind = True
+    if hasattr(options,'ifile_loose'): iloose= options.ifile_loose
+    else:                         iloose=''
+    if hasattr(options,'ifile_muon'): muonCR= options.ifile_muon
+    else:                         muonCR=''
+    if hasattr(options,'year'): year  = options.year
+    else:                         year  =''
+    if hasattr(options,'exp'): exp  = options.exp
+    else:                         exp  = False
+    if hasattr(options,'pseudoPass'): pseudoPass  = options.pseudoPass
+    else:                         pseudoPass  = False
+    if hasattr(options,'MiNLO'): MiNLO = options.MiNLO
+    else:                        MiNLO = False
+    if hasattr(options,'qcdTF'): qcdTF = options.qcdTF
+    else:                        qcdTF = False
+    if   year=='2018':   SF = SF2018
+    elif year=='2017':   SF = SF2017
+    elif year=='2016':   SF = SF2016
+    else:                SF = {}
+
     
     ifileName = ifile.split("/")[-1]
     if odir=="":
         odir = os.path.dirname(ifile) 
         print "using default output dir:", odir
-    rhalph_base    = "python buildRhalphabetHbb.py -i %s -o %s --nr %i --np %i --remove-unmatched --prefit --addHptShape "%(ifile,odir,nr,np)
+    rhalph_base    = "python buildRhalphabetHbb.py -i %s -o %s --nr %i --np %i --remove-unmatched --prefit "%(ifile,odir,nr,np)
     makecard_base  = "python makeCardsHbb.py       -i %s -o %s                 --remove-unmatched --no-mcstat-shape "%(ifile,odir)
     if muonCR:
-        makemuonCR_base = "python writeMuonCRDatacard.py       -i %s -o %s "%(muonCR,odir)
+        makemuonCR_base = "python writeMuonCRDatacard.py       -i %s -o %s --no-mcstat-shape "%(muonCR,odir)
     combcards_base = "combineCards.py "
-    t2ws_rz      ="text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel -m 125  --PO verbose --PO 'map=.*/*hqq125:r[1,0,20]' --PO 'map=.*/zqq:r_z[1,0,20]'"
+    t2ws_rz      ="text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel -m 125  --PO verbose --PO 'map=.*/*_hbb:r[1,0,20]' --PO 'map=.*/zqq:r_z[1,0,20]'"
 
     #construct {catX_suffix:card_rhalphabet_cat%s.txt}
     cats = buildcats(ifile,odir,muonCR,suffix)
     for cat in cats:
         combcards_base += " %s=%s "%(cat['name'],cat['card'])
     
+    if not MiNLO:
+        rhalph_base += " --addHptShape"
+        makecard_base += " --addHptShape"
+
     if suffix:
         rhalph_base += " --suffix %s"%suffix
         makecard_base += " --suffix %s"%suffix
+        if muonCR:
+            makemuonCR_base += " --suffix %s"%suffix
         combcard_all = "%scard_rhalphabet_all_%s_r%ip%i.txt "%(odir,suffix,nr,np)
         combcards_base += " > %s"%(combcard_all)
     else:
@@ -76,16 +100,13 @@ def buildcards(odir,nr,np, options):
     if blind:
         rhalph_base += " --blind "
         makecard_base +=" --blind "
-    #if is2017:
-    #    rhalph_base += " --is2017 "
-    #    makecard_base +=" --is2017 "
-    #    if muonCR:
-    #        makemuonCR_base+=" --is2017 "
     if year:
         rhalph_base   +=" --year %s "%year
         makecard_base +=" --year %s "%year
         if muonCR:
             makemuonCR_base +=" --year %s "%year
+    if qcdTF: 
+        makecard_base +=" --addqcdCovMat "
 
 
     wsRoot = combcard_all.replace(".txt","_floatZ.root")       
@@ -127,11 +148,13 @@ if __name__ == "__main__":
     parser.add_option('-n','--n' ,action='store',type='int',dest='n'   ,default=5*20, help='number of bins')
     parser.add_option('--just-plot', action='store_true', dest='justPlot', default=False, help='just plot')
     parser.add_option('--pseudo', action='store_true', dest='pseudo', default=False, help='run on asimov dataset')
-    #parser.add_option('--is2017', action='store_true', dest='is2017', default=False, help='use 2017SF')
     parser.add_option('-y' ,'--year', type='choice', dest='year', default ='2016',choices=['2016','2017','2018'],help='switch to use different year ', metavar='year')
-    parser.add_option('--blind', action='store_true', dest='blind', default=False, help='run on blinded dataset')
+    parser.add_option('--blind', action='store_true', dest='blind', default=False, help='run on blinded dataset',metavar='blind')
+    parser.add_option('--MiNLO', action='store_true', dest='MiNLO', default=False, help='MiNLO unc.',metavar='MiNLO')
+    parser.add_option('--qcdTF', action='store_true', dest='qcdTF', default=False, help='switch to make qcdTF cards',metavar='qcdTF')
     parser.add_option('--exp', action='store_true', dest='exp', default=False, help='use exp(bernstein poly) transfer function',metavar='exp')
     parser.add_option('--freezeNuisances'   ,action='store',type='string',dest='freezeNuisances'   ,default='None', help='freeze nuisances')
+    parser.add_option('--setParameters'   ,action='store',type='string',dest='setParameters'   ,default='None', help='setParameters')
     parser.add_option('--dryRun',dest="dryRun",default=False,action='store_true',
                   help="Just print out commands to run")    
     parser.add_option('-o', '--odir', dest='odir', default='./', help='directory to write plots', metavar='odir')
@@ -180,10 +203,10 @@ if __name__ == "__main__":
         dataString = '--data'
 
     if not options.justPlot:    
-        limit_cmd = 'python limit.py -M FTest --datacard %s --datacard-alt %s -o %s -n %i --p1 %i --p2 %i -t %i --lumi %f %s -r %f --seed %s --freezeNuisances %s '%(datacardWS1,datacardWS2,toysDir, options.n, p1, p2, options.toys, options.lumi, dataString, options.r, options.seed, options.freezeNuisances)
+        limit_cmd = 'python limit.py -M FTest --datacard %s --datacard-alt %s -o %s -n %i --p1 %i --p2 %i -t %i --lumi %f %s -r %f --seed %s --freezeNuisances %s --setParameters %s --NR1 %s --NP1 %s --NR2 %s --NP2 %s'%(datacardWS1,datacardWS2,toysDir, options.n, p1, p2, options.toys, options.lumi, dataString, options.r, options.seed, options.freezeNuisances,options.setParameters,options.NR1,options.NP1,options.NR2,options.NP2)
         exec_me(limit_cmd,logf,options.dryRun)
     else:
         # use toys from hadd-ed directory
         toysDir +="/toys/ "
-        limit_cmd = 'python limit.py -M FTest --datacard %s --datacard-alt %s -o %s -n %i --p1 %i --p2 %i -t %i --lumi %f %s -r %f --seed %s --freezeNuisances %s '%(datacardWS1,datacardWS2,toysDir, options.n, p1, p2, options.toys, options.lumi, dataString, options.r, options.seed, options.freezeNuisances)
+        limit_cmd = 'python limit.py -M FTest --datacard %s --datacard-alt %s -o %s -n %i --p1 %i --p2 %i -t %i --lumi %f %s -r %f --seed %s --freezeNuisances %s --setParameters %s --NR1 %s --NP1 %s --NR2 %s --NP2 %s'%(datacardWS1,datacardWS2,toysDir, options.n, p1, p2, options.toys, options.lumi, dataString, options.r, options.seed, options.freezeNuisances,options.setParameters,options.NR1,options.NP1,options.NR2,options.NP2)
         exec_me(limit_cmd+" --just-plot ",logf,options.dryRun)

@@ -8,11 +8,15 @@ import sys
 import time
 import array
 import re 
+import numpy as np
 #r.gSystem.Load("~/Dropbox/RazorAnalyzer/python/lib/libRazorRun2.so")
 r.gSystem.Load(os.getenv('CMSSW_BASE')+'/lib/'+os.getenv('SCRAM_ARCH')+'/libHiggsAnalysisCombinedLimit.so')
 # r.gInterpreter.GenerateDictionary("std::pair<std::string, RooDataHist*>", "map;string;RooDataHist.h")
 # r.gInterpreter.GenerateDictionary("std::map<std::string, RooDataHist*>", "map;string;RooDataHist.h")
 
+sys.path.insert(0, '/uscms_data/d3/ncsmith/dazsle/sl7combine/CMSSW_10_2_13/src/rhalphalib')
+import rhalphalib as rl
+rl.util.install_roofit_helpers()
 
 # including other directories
 import tools as tools
@@ -29,7 +33,7 @@ import bernstein
 class RhalphabetBuilder():
     def __init__(self, pass_hists, fail_hists, input_file, out_dir, nr=2, np=1, mass_nbins=23, mass_lo=40, mass_hi=201,
                  blind_lo=110, blind_hi=131, rho_lo=-6, rho_hi=-2.1, blind=False, mass_fit=False, freeze_poly=False,
-                 remove_unmatched=False, input_file_loose=None,suffix=None,sf_dict={},mass_hist_lo=40,mass_hist_hi=201,qcdTFpars={},exp=False,multi=False):
+                 remove_unmatched=False, input_file_loose=None,suffix=None,sf_dict={},mass_hist_lo=40,mass_hist_hi=201,qcdTFpars={},exp=False,multi=False,pseudo=False):
         self._pass_hists = pass_hists
         self._fail_hists = fail_hists
         self._mass_fit = mass_fit
@@ -37,6 +41,7 @@ class RhalphabetBuilder():
         self._inputfile = input_file
         self._inputfile_loose = input_file_loose
         self._sf_dict = sf_dict
+        self._pseudo = pseudo
         if suffix:
             if suffix[0]!='_': self._suffix = '_'+suffix 
         else:
@@ -139,6 +144,7 @@ class RhalphabetBuilder():
 
         ## qcdTFpars = {'n_rho':n_rho,'n_pT':n_pT,'pars':[p0r0,...]}
         if not qcdTFpars =={}:
+            self._qcd_deco_output_path = "{}/qcdfit_decorrelated.root".format(out_dir)
             f2params    = array.array('d', qcdTFpars['pars'])
             npar        = len(f2params)
             boundaries={}
@@ -217,14 +223,14 @@ class RhalphabetBuilder():
 
             # validation
             self._outfile_validation.cd()
-            hist_up.SetName('%s_%s_%s'%(proc,cat,'hqq125ptShapeUp'))
+            hist_up.SetName('%s_%s_%s'%(proc,cat,'CMS_gghbb_ggHptShapeUp'))
             hist_up.Write()
-            hist_down.SetName('%s_%s_%s'%(proc,cat,'hqq125ptShapeDown'))
+            hist_down.SetName('%s_%s_%s'%(proc,cat,'CMS_gghbb_ggHptShapeDown'))
             hist_down.Write()
 
 
-            hptpdfUp_s[cat] = r.RooDataHist('%s_%s_%s'%(proc,cat,'hqq125ptShapeUp'), '%s_%s_%s'%(proc,cat,'hqq125ptShapeUp'), r.RooArgList(x), hist_up)
-            hptpdfDown_s[cat] = r.RooDataHist('%s_%s_%s'%(proc,cat,'hqq125ptShapeDown'), '%s_%s_%s'%(proc,cat,'hqq125ptShapeDown'), r.RooArgList(x), hist_down)
+            hptpdfUp_s[cat] = r.RooDataHist('%s_%s_%s'%(proc,cat,'CMS_gghbb_ggHptShapeUp'), '%s_%s_%s'%(proc,cat,'CMS_gghbb_ggHptShapeUp'), r.RooArgList(x), hist_up)
+            hptpdfDown_s[cat] = r.RooDataHist('%s_%s_%s'%(proc,cat,'CMS_gghbb_ggHptShapeDown'), '%s_%s_%s'%(proc,cat,'CMS_gghbb_ggHptShapeDown'), r.RooArgList(x), hist_down)
 
             getattr(wbase[cat], 'import')(hptpdfUp_s[cat], r.RooFit.RecycleConflictNodes())
             getattr(wbase[cat], 'import')(hptpdfDown_s[cat], r.RooFit.RecycleConflictNodes())
@@ -250,6 +256,89 @@ class RhalphabetBuilder():
             else:
                 wbase[cat].writeToFile(self._output_path, False)
             icat += 1
+
+    def createdeco(self):
+        qcdralpha = self._qcdTFpars['fitpath']
+        qcdfit    = r.TFile.Open(qcdralpha).Get("w_pass_cat1").obj("fitresult_simPdf_s_data_obs")
+
+        year = self._suffix.replace("_",'') 
+        fout = r.TFile.Open(self._qcd_deco_output_path, "recreate")
+        fralphabase = r.TFile.Open(self._rhalphabet_output_path, 'READ')
+        ws = r.RooWorkspace("qcdfit_deco_%s" % year)
+
+        def getconst(name):
+            p = qcdfit.constPars().find(name)
+            if p == None:
+                raise ValueError(name)
+            return p.getVal()
+
+        ptbins = np.array([450, 500, 550, 600, 675, 800, 1200])
+        npt = len(ptbins) - 1
+        msdbins = np.linspace(40, 201, 24)
+        msd = rl.Observable('x', msdbins)
+    
+        # here we derive these all at once with 2D array
+        ptpts, msdpts = np.meshgrid(ptbins[:-1] + 0.3 * np.diff(ptbins), msdbins[:-1] + 0.5 * np.diff(msdbins), indexing='ij')
+        rhopts = 2*np.log(msdpts/ptpts)
+        ptscaled = (ptpts - 450.) / (1200. - 450.)
+        rhoscaled = (rhopts - (-6)) / ((-2.1) - (-6))
+        validbins = (rhoscaled >= 0) & (rhoscaled <= 1)
+        validbins[:, 0] = False  # cut msd 40-47
+        if self._blind:
+            validbins[:, 10:13] = False  # blind
+        rhoscaled[~validbins] = 1  # we will mask these out later
+    
+        tf_MCtempl = rl.BernsteinPoly("qcdfit_tf_%s" % year, (self._qcdTFpars['n_pT'], self._qcdTFpars['n_rho']), ['pt', 'rho'], limits=(-10, 10))
+        param_names = ['p%dr%d_%s' % (ipt, irho, year) for ipt in range(3) for irho in range(3)]
+        decoVector = rl.DecorrelatedNuisanceVector.fromRooFitResult(tf_MCtempl.name + '_deco', qcdfit, param_names)
+        tf_MCtempl.parameters = decoVector.correlated_params.reshape(tf_MCtempl.parameters.shape)
+        qcdeff = getconst("qcdeff_%s" % year)
+        tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
+    
+        tf_dataResidual = rl.BernsteinPoly("dataResidual_%s" % year, (self._poly_degree_pt, self._poly_degree_rho), ['pt', 'rho'], limits=(-10, 10), coefficient_transform=None)
+        tf_dataResidual_params = tf_dataResidual(ptscaled, rhoscaled)
+        tf_params = qcdeff * tf_MCtempl_params_final * tf_dataResidual_params
+
+        wbase = fralphabase.Get('w_pass_cat1')  # to get 'prefit' params
+        for (i, j), param in np.ndenumerate(tf_dataResidual.parameters):
+            param.name = 'p%dr%d_%s' % (i, j, year)
+            oldvar = wbase.var(param.name)
+            if oldvar == None:
+                raise Exception("can't find %s in rhalphabase! maybe wrong TF order?" % param.name)
+            param.value = oldvar.getVal()
+            param.error = oldvar.getError()
+            print("setting %r to %f" % (param, param.value))
+
+        fout.cd()
+        for ipt in range(npt):
+            wbase = fralphabase.Get('w_fail_cat%d' % (ipt + 1, ))
+            qcdinV = np.full(msd.nbins, None)
+            qcduncV = np.full(msd.nbins, None)
+            qcdparamV = np.full(msd.nbins, None)
+            for imsd in range(msd.nbins):
+                qcdin_name = "qcd_fail_cat{ptcat}_Bin{msdbin}_In_{year}".format(ptcat=ipt + 1, msdbin=imsd + 1, year=year)
+                qcdunc_name = "qcd_fail_cat{ptcat}_Bin{msdbin}_Unc_{year}".format(ptcat=ipt + 1, msdbin=imsd + 1, year=year)
+                qcdparam_name = "qcd_fail_cat{ptcat}_Bin{msdbin}_{year}".format(ptcat=ipt + 1, msdbin=imsd + 1, year=year)
+                qcdin = wbase.var(qcdin_name).getVal()
+                qcdunc = wbase.var(qcdunc_name).getVal()
+                # already in card
+                # card.write("%s flatParam\n" % qcdparam_name)
+                valid = validbins[ipt, imsd]
+                if not valid and qcdin > 0.:
+                    print("nonzero qcdin for bin %d,%d: %d" % (ipt, imsd, qcdin))
+                qcdinV[imsd] = rl.IndependentParameter(qcdin_name, qcdin, constant=True)
+                qcduncV[imsd] = rl.IndependentParameter(qcdunc_name, qcdunc, constant=True)
+                if valid:
+                    qcdparamV[imsd] = rl.IndependentParameter(qcdparam_name, 0., lo=-50, hi=50)
+                else:
+                    qcdparamV[imsd] = rl.IndependentParameter(qcdparam_name, 0., constant=True)
+            
+            scaledparams = qcdinV * (qcduncV**qcdparamV)
+            fail_qcd = rl.ParametericSample('qcd_fail_cat%d_%s' % (ipt + 1, year), rl.Sample.BACKGROUND, msd, scaledparams)
+            fail_qcd.renderRoofit(ws)
+            pass_qcd = rl.TransferFactorSample('qcd_pass_cat%d_%s' % (ipt + 1, year), rl.Sample.BACKGROUND, tf_params[ipt, :], fail_qcd)
+            pass_qcd.renderRoofit(ws)
+        ws.Write()
 
     def prefit(self):
 
@@ -414,22 +503,24 @@ class RhalphabetBuilder():
                     w.var('p'+str(j)+'r'+str(i)+self._suffix).setConstant(False)
                     w.var('p'+str(j)+'r'+str(i)+self._suffix).Print('v')
 
-        nll = simPdf_s.createNLL(combData)
-        m2 = r.RooMinimizer(nll)
-        m2.setStrategy(2)
-        m2.setMaxFunctionCalls(100000)
-        m2.setMaxIterations(100000)
-        m2.setPrintLevel(-1)
-        m2.setPrintEvalErrors(-1)
-        m2.setEps(1e-5)
-        m2.optimizeConst(2)
+        if not self._pseudo:
+            nll = simPdf_s.createNLL(combData)
+            m2 = r.RooMinimizer(nll)
+            m2.setStrategy(2)
+            m2.setMaxFunctionCalls(100000)
+            m2.setMaxIterations(100000)
+            m2.setPrintLevel(-1)
+            m2.setPrintEvalErrors(-1)
+            m2.setEps(1e-5)
+            m2.optimizeConst(2)
 
-        
-        migrad_status = m2.minimize('Minuit2', 'migrad')
-        improve_status = m2.minimize('Minuit2', 'improve')
-        hesse_status = m2.minimize('Minuit2', 'hesse')
-        
-        fr = m2.save()
+            migrad_status = m2.minimize('Minuit2', 'migrad')
+            improve_status = m2.minimize('Minuit2', 'improve')
+            hesse_status = m2.minimize('Minuit2', 'hesse')
+            
+            fr = m2.save()
+        else:
+            fr = simPdf_s.fitTo(combData,r.RooFit.Extended(True),r.RooFit.SumW2Error(True),r.RooFit.Strategy(2),r.RooFit.Save(),r.RooFit.Minimizer('Minuit2','migradimproved'))
         fr.Print('v')
 
         if self._multi:
@@ -656,10 +747,14 @@ class RhalphabetBuilder():
                         qcd_fail_bin_content,qcd_pass_bin_content,qcd_pass_bin_content/qcd_fail_bin_content,qcd_bin_ratio,self._lEffQCD.getVal())
                 lEffQCD_bin = r.RooRealVar("qcdeff_"+category+self._suffix + "_Bin" + str(mass_bin),
                                          "qcdeff_"+category+self._suffix + "_Bin" + str(mass_bin),
-                                          0.01, 0., 10.)
-                lEffQCD_bin.setVal(qcd_bin_ratio)
+                                          10, 0., 100.)
+                lEffQCD_bin_exp = r.RooFormulaVar("qcdeff_exp_"+category+self._suffix + "_Bin" + str(mass_bin),
+                                                  "qcdeff_exp_"+category+self._suffix + "_Bin" + str(mass_bin),
+                                                   "@0*1E-3", r.RooArgList(lEffQCD_bin))
+
+                lEffQCD_bin.setVal(qcd_bin_ratio*1000)
                 lEffQCD_bin.setConstant(True)
-                lArg = r.RooArgList(fail_bin_var, roopolyarray, lEffQCD_bin)  #Use bin-by-bin qcd-eff
+                lArg = r.RooArgList(fail_bin_var, roopolyarray, lEffQCD_bin_exp)  #Use bin-by-bin qcd-eff
             else:
                 qcd_bin_ratio        = 1.0
                 if qcd_fail_bin_content>0:
@@ -702,7 +797,7 @@ class RhalphabetBuilder():
                 pass_bins_exp.add(pass_bin_var_exp)
             fail_bins.add(fail_bin_var)
             if not self._qcdTFpars=={}:
-                self._all_vars.extend([pass_bin_var, fail_bin_var, fail_bin_var_in, fail_bin_var_unc, fail_bin_var_real,lEffQCD_bin])
+                self._all_vars.extend([pass_bin_var, fail_bin_var, fail_bin_var_in, fail_bin_var_unc, fail_bin_var_real,lEffQCD_bin,lEffQCD_bin_exp])
             else:
                 self._all_vars.extend([pass_bin_var, fail_bin_var, fail_bin_var_in, fail_bin_var_unc, fail_bin_var_real])
             # print  fail_bin_var.GetName(),"flatParam",lPass#,lPass+"/("+lFail+")*@0"
@@ -1266,7 +1361,11 @@ class RhalphabetBuilder():
                         m_mc_err / m_mc)) * 10.  # (10 sigma shift)
                 if 'smear_SF' in self._sf_dict.keys():
                     res_shift     = self._sf_dict['smear_SF']
-                    res_shift_unc = self._sf_dict['smear_SF_ERR']  *4     # (2 sigma shift)
+                    year = self._suffix.replace("_",'') 
+                    if year =='2018':
+                        res_shift_unc = self._sf_dict['smear_SF_ERR']  *20     # (20 sigma shift) for 2018
+                    else:
+                        res_shift_unc = self._sf_dict['smear_SF_ERR']  *4
                 else:
                     s_data     =self._sf_dict['s_data']    # 8.701
                     s_data_err =self._sf_dict['s_data_err']# 0.433
@@ -1320,8 +1419,8 @@ class RhalphabetBuilder():
                     hmatchedsys_smear[0].Add(tmph_mass_unmatched)
                     hmatchedsys_smear[1].Add(tmph_mass_unmatched)
                 hmatched_new_central.SetName(import_object.GetName())
-                hmatchedsys_shift[0].SetName(import_object.GetName() + "_scale%sUp"%self._suffix)
-                hmatchedsys_shift[1].SetName(import_object.GetName() + "_scale%sDown"%self._suffix)
+                hmatchedsys_shift[0].SetName(import_object.GetName() + "_CMS_gghbb_scale%sUp"%self._suffix)
+                hmatchedsys_shift[1].SetName(import_object.GetName() + "_CMS_gghbb_scale%sDown"%self._suffix)
                 #print "scale name = ", import_object.GetName() + "_scale%s%sUp"%(cat,self._suffix)
                 #hmatchedsys_shift[0].SetName(import_object.GetName() + "_scale%s%sUp"%(cat,self._suffix))
                 #hmatchedsys_shift[1].SetName(import_object.GetName() + "_scale%s%sDown"%(cat,self._suffix))
@@ -1333,8 +1432,8 @@ class RhalphabetBuilder():
                 print "Final smear mean up= ",hmatchedsys_smear[0].GetMean(),' smeared by ', res_shift_unc
                 print "Final smear mean up max bin center= ",hmatchedsys_smear[0].GetBinCenter(hmatchedsys_smear[0].GetMaximumBin())
 
-                hmatchedsys_smear[0].SetName(import_object.GetName() + "_smear%sUp"%self._suffix)
-                hmatchedsys_smear[1].SetName(import_object.GetName() + "_smear%sDown"%self._suffix)
+                hmatchedsys_smear[0].SetName(import_object.GetName() + "_CMS_gghbb_smear%sUp"%self._suffix)
+                hmatchedsys_smear[1].SetName(import_object.GetName() + "_CMS_gghbb_smear%sDown"%self._suffix)
 
 
 
@@ -1602,6 +1701,12 @@ def GetSF(process, cat, f, fLoose=None, removeUnmatched=False, iPt=-1,sf_dict={}
         SF *= passInt / passIntLoose
         if 'zqq' in process:
             print passInt / passIntLoose
+    if 'qcd' in process:
+        qcdkfactor =0.78
+        print "Applying qcdkfactor = %s"%qcdkfactor
+        SF *= qcdkfactor
+
+
     # remove cross section from MH=125 signal templates (template normalized to luminosity*efficiency*acceptance)
     ## if process=='hqq125':
     ##     SF *= 1./48.85*5.824E-01
